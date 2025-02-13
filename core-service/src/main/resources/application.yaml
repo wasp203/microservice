@@ -1,0 +1,19 @@
+spring:
+  application:
+    name:core-service
+
+  datasource:
+    password: db
+    username: db
+    url: jdbc:postgresql://localhost:5432/db
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8081
+
+springdoc:
+  swagger-ui:
+    path: /
