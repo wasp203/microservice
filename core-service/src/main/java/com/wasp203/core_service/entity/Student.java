@@ -1,9 +1,7 @@
 package com.wasp203.core_service.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
@@ -11,6 +9,8 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Student {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,6 +23,6 @@ public class Student {
     @Column(name = "date_of_birth", nullable = false)
     LocalDate dateOfBirth;
 
-    @Column(name = "group", nullable = false)
-    String group;
+    @Column(name = "group_number", nullable = false)
+    String groupNumber;
 }
