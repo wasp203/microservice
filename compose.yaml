@@ -6,9 +6,33 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: db
-      POSTGRES_PASSWORD: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: db
+
+  core-service:
+    build: ./core-service
+    container_name: core_service
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    ports:
+      - "8081:8081"
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway
+    restart: always
+    depends_on:
+      - core-service
+    environment:
+      CORE_SERVICE_URL: http://core-service:8081/api
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:

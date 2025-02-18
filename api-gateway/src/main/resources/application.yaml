@@ -6,7 +6,7 @@ server:
   port: 8080
 
 core-service:
-  url: http://localhost:8081/api
+  url: "${CORE_SERVICE_URL:http://localhost:8081/api}"
 
 springdoc:
   swagger-ui:

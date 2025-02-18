@@ -1,11 +1,11 @@
 spring:
   application:
-    name:core-service
+    name: core-service
 
   datasource:
-    password: db
-    username: db
-    url: jdbc:postgresql://localhost:5432/db
+    password: "${SPRING_DATASOURCE_USERNAME:user}"
+    username: "${SPRING_DATASOURCE_PASSWORD:password}"
+    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/db}"
 
   jpa:
     hibernate:
