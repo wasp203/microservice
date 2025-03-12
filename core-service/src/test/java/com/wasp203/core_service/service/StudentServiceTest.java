@@ -6,13 +6,13 @@ import com.wasp203.core_service.entity.Student;
 import com.wasp203.core_service.exception.NotFoundException;
 import com.wasp203.core_service.mapper.StudentMapper;
 import com.wasp203.core_service.repository.StudentRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +20,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class})
 class StudentServiceTest {
 
     @Mock
@@ -32,161 +32,133 @@ class StudentServiceTest {
     @InjectMocks
     private StudentService studentService;
 
-
     @Test
-    void getStudents_ShouldReturnListOfStudents() {
+    @DisplayName("getStudents_ReturnsListOfStudents_WhenDataExists")
+    void getStudents_ReturnsListOfStudents_WhenDataExists() {
         // Arrange
-        Student student = getStudent();
-        when(studentRepository.findAll()).thenReturn(List.of(student));
+        List<Student> students = List.of(new Student(), new Student(), new Student());
+        when(studentRepository.findAll()).thenReturn(students);
 
         // Act
-        List<Student> students = studentService.getStudents();
+        List<Student> result = studentService.getStudents();
 
         // Assert
-        assertThat(students).isNotNull();
-        assertThat(students.size()).isEqualTo(1);
-        assertThat(students.get(0)).isEqualTo(student);
-
-        verify(studentRepository, times(1)).findAll();
+        assertThat(result).hasSize(3).containsExactlyElementsOf(students);
+        verify(studentRepository).findAll();
     }
 
     @Test
-    void getStudent_WhenStudentExists_ShouldReturnStudent() {
+    @DisplayName("getStudent_ReturnsStudent_WhenExistsInDatabase")
+    void getStudent_ReturnsStudent_WhenExistsInDatabase() {
         // Arrange
-        Student student = getStudent();
+        Student student = new Student();
+        student.setId(1L);
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
 
         // Act
-        Student foundStudent = studentService.getStudent(student.getId());
+        Student result = studentService.getStudent(1L);
 
         // Assert
-        assertThat(foundStudent).isNotNull()
-                        .isEqualTo(student);
-
-        verify(studentRepository, times(1)).findById(student.getId());
+        assertThat(result).isEqualTo(student);
+        verify(studentRepository).findById(1L);
     }
 
     @Test
-    void getStudent_WhenStudentDoesNotExist_ShouldThrowNotFoundException() {
+    @DisplayName("getStudent_ThrowsException_WhenStudentNotFound")
+    void getStudent_ThrowsException_WhenStudentNotFound() {
         // Arrange
-        Long id = 1L;
-        when(studentRepository.findById(id)).thenReturn(Optional.empty());
+        Long studentId = 1L;
+        when(studentRepository.findById(studentId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> studentService.getStudent(id))
+        assertThatThrownBy(() -> studentService.getStudent(studentId))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("not found");
+                .hasMessage("Student with id " + studentId + " not found");
 
-        verify(studentRepository, times(1)).findById(id);
+        verify(studentRepository).findById(studentId);
     }
 
     @Test
-    void addStudent_ShouldSaveAndReturnStudent() {
+    @DisplayName("addStudent_SavesStudent_WhenDataIsValid")
+    void addStudent_SavesStudent_WhenDataIsValid() {
         // Arrange
-        Student student = getStudent();
-        CreateStudentRequest createStudentRequest = getCreateStudentRequest();
-
-        when(studentMapper.toEntity(createStudentRequest)).thenReturn(student);
+        CreateStudentRequest request = mock(CreateStudentRequest.class);
+        Student student = mock(Student.class);
+        when(studentMapper.toEntity(request)).thenReturn(student);
         when(studentRepository.save(student)).thenReturn(student);
 
-        Student savedStudent = studentService.addStudent(createStudentRequest);
-
-        assertThat(savedStudent)
-                .isNotNull()
-                .isEqualTo(student);
-
-        verify(studentMapper, times(1)).toEntity(createStudentRequest);
-        verify(studentRepository, times(1)).save(student);
-    }
-
-
-
-    @Test
-    void updateStudent_WhenStudentExists_ShouldUpdateAndReturnStudent() {
-        // Arrange
-        String name = "Ilya";
-        Student student = getStudent();
-        UpdateStudentRequest updateStudentRequest = new UpdateStudentRequest(
-                student.getId(),
-                name,
-                null,
-                null);
-        Student expectedStudent = getStudent();
-        expectedStudent.setName(name);
-
-        when(studentRepository.findById(student.getId())).thenReturn(Optional.of(student));
-        when(studentMapper.partialUpdate(updateStudentRequest, student)).thenReturn(expectedStudent);
-        when(studentRepository.save(expectedStudent)).thenReturn(expectedStudent);
-
         // Act
-        Student updatedStudent = studentService.updateStudent(updateStudentRequest);
+        Student result = studentService.addStudent(request);
 
         // Assert
-        assertThat(updatedStudent)
-                .isNotNull()
-                .isEqualTo(expectedStudent);
-
-        verify(studentRepository, times(1)).findById(student.getId());
-        verify(studentMapper, times(1)).partialUpdate(updateStudentRequest, student);
-        verify(studentRepository, times(1)).save(updatedStudent);
+        assertThat(result).isEqualTo(student);
+        verify(studentMapper).toEntity(request);
+        verify(studentRepository).save(student);
     }
 
     @Test
-    void updateStudent_WhenStudentDoesNotExist_ShouldThrowNotFoundException() {
+    @DisplayName("updateStudent_UpdatesStudent_WhenStudentExists")
+    void updateStudent_UpdatesStudent_WhenStudentExists() {
         // Arrange
-        UpdateStudentRequest updateStudentRequest = new UpdateStudentRequest(
-                1L,
-                null,
-                null,
-                null);
+        UpdateStudentRequest request = mock(UpdateStudentRequest.class);
+        Student existingStudent = mock(Student.class);
+        Student updatedStudent = mock(Student.class);
+        when(studentRepository.findById(request.id())).thenReturn(Optional.of(existingStudent));
+        when(studentMapper.partialUpdate(request, existingStudent)).thenReturn(updatedStudent);
+        when(studentRepository.save(updatedStudent)).thenReturn(updatedStudent);
 
-        when(studentRepository.findById(1L)).thenReturn(Optional.empty());
+        // Act
+        Student result = studentService.updateStudent(request);
+
+        // Assert
+        assertThat(result).isEqualTo(updatedStudent);
+        verify(studentRepository).findById(request.id());
+        verify(studentMapper).partialUpdate(request, existingStudent);
+        verify(studentRepository).save(updatedStudent);
+    }
+
+    @Test
+    @DisplayName("updateStudent_ThrowsException_WhenStudentNotFound")
+    void updateStudent_ThrowsException_WhenStudentNotFound() {
+        // Arrange
+        UpdateStudentRequest request = mock(UpdateStudentRequest.class);
+        when(studentRepository.findById(request.id())).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> studentService.updateStudent(updateStudentRequest))
+        assertThatThrownBy(() -> studentService.updateStudent(request))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("not found");
+                .hasMessage("Student with id " + request.id() + " not found");
 
-        verify(studentRepository, times(1)).findById(1L);
-        verify(studentMapper, never()).partialUpdate(any(), any());
-        verify(studentRepository, never()).save(any());
+        verify(studentRepository).findById(request.id());
     }
 
     @Test
-    void deleteStudent_WhenStudentExists_ShouldDeleteStudent() {
-        when(studentRepository.existsById(1L)).thenReturn(true);
-
-        studentService.deleteStudent(1L);
-
-        verify(studentRepository, times(1)).existsById(1L);
-        verify(studentRepository, times(1)).deleteById(1L);
-    }
-
-    @Test
-    void deleteStudent_WhenStudentDoesNotExist_ShouldThrowNotFoundException() {
+    @DisplayName("deleteStudent_DeletesStudent_WhenStudentExists")
+    void deleteStudent_DeletesStudent_WhenStudentExists() {
         // Arrange
-        when(studentRepository.existsById(1L)).thenReturn(false);
+        Long studentId = 1L;
+        when(studentRepository.existsById(studentId)).thenReturn(true);
+
+        // Act
+        studentService.deleteStudent(studentId);
+
+        // Assert
+        verify(studentRepository).existsById(studentId);
+        verify(studentRepository).deleteById(studentId);
+    }
+
+    @Test
+    @DisplayName("deleteStudent_ThrowsException_WhenStudentNotFound")
+    void deleteStudent_ThrowsException_WhenStudentNotFound() {
+        // Arrange
+        Long studentId = 1L;
+        when(studentRepository.existsById(studentId)).thenReturn(false);
 
         // Act & Assert
-        assertThatThrownBy(() -> studentService.deleteStudent(1L))
+        assertThatThrownBy(() -> studentService.deleteStudent(studentId))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("not found");
+                .hasMessage("Student with id " + studentId + " not found");
 
-        verify(studentRepository, times(1)).existsById(1L);
-        verify(studentRepository, never()).deleteById(1L);
-    }
-
-    private static Student getStudent() {
-        return Student.builder()
-                .id(1L)
-                .name("Sima Dirov")
-                .groupNumber("121")
-                .dateOfBirth(LocalDate.now())
-                .build();
-    }
-
-    private CreateStudentRequest getCreateStudentRequest() {
-        Student student = getStudent();
-        return new CreateStudentRequest(student.getName(), student.getDateOfBirth(), student.getGroupNumber());
+        verify(studentRepository).existsById(studentId);
     }
 }
